@@ -639,8 +639,8 @@ solution, matrix, losses, attachments = single_cell_phylogeny(mutation_matrix, n
 #pprint(mutation_matrix)
 
 
-pprint(solution)
-pprint(mutation_matrix)
+#pprint(solution)
+#pprint(mutation_matrix)
 
 solution_mismatches = 0
 for u, v in zip(solution, mutation_matrix):
@@ -648,7 +648,7 @@ for u, v in zip(solution, mutation_matrix):
         if uu != vv:
             solution_mismatches += 1
 
-print "Solution mismatches in ancestry matrix", solution_mismatches
+#print "Solution mismatches in ancestry matrix", solution_mismatches
 
 
 
@@ -760,3 +760,98 @@ A.write(where_to_save + ".igor.dot")
 A.layout(prog='dot')
 
 A.draw(where_to_save + ".igor.pdf")
+
+
+########################################## EVALUATE THE SOLUTION ###################
+
+if len(sys.argv) == 5: # here we have to supply the ground truth
+    groundMfile = sys.argv[3]
+    with open(groundMfile) as f:
+        groundMfile = f.readlines()
+    groundMfile = map(lambda x: x.strip().split(), groundMfile)
+    groundM = []
+    for line in groundMfile:
+        groundM.append(map(int, line))
+
+    # here we work with mutation_matrix and solution matrices
+    # evaluate false positive and false negative
+    trueMijOnes = 0
+    mutMijOnes = 0
+    solMijOnes = 0
+    for mline, sline in zip(mutation_matrix, solution):
+        for m, s in zip(mline, sline):
+            if m == 1:
+                mutMijOnes += 1
+            if s == 1:
+                solMijOnes += 1
+            if m == 1 and s == 1:
+                trueMijOnes += 1
+    sensitivity = round(trueMijOnes * 1.0 / mutMijOnes, 2)
+    ppv = round(trueMijOnes * 1.0 / solMijOnes, 2)
+    print "SENSITIVITY", sensitivity
+    print "PPV", ppv
+
+
+    # evaluate mutations from mutation tree
+    #pprint(matrix)
+    with open(sys.argv[4]) as f:
+        ancestFile = f.readlines()
+    ancestFile = map(lambda x: x.strip().split(), ancestFile)
+    cellAncestors = ancestFile[len(matrix) - 1:]
+    ancestFile = ancestFile[:len(matrix) - 1]
+    trueAncestDict = {}
+    for i, line in enumerate(ancestFile):
+        trueAncestDict[i + 1] = set(map(int, line))
+    inferredAncestDict = {}
+    for i in range(1, len(matrix[0])):
+        anc = [matrix[j][i] for j in range(len(matrix))]
+        #print anc
+        ances = set()
+        for u, v in enumerate(anc):
+            if u != i: # do not count node as its own ancestor
+                if v == 1:
+                    ances.add(u)
+        if len(ances) > 1:
+            ances.remove(0)
+        inferredAncestDict[i] = ances
+
+    nTruePar = 0
+    nEstimPar = 0
+    truePos = 0
+    for i in range(1, len(matrix[0])):
+        #print trueAncestDict[i], inferredAncestDict[i]
+        nTruePar += len(trueAncestDict[i])
+        nEstimPar += len(inferredAncestDict[i])
+        truePos += len(trueAncestDict[i] & inferredAncestDict[i])
+    print "SENSITIVITY ANCESTORS", round(truePos * 1.0 / nTruePar, 2)
+    print "PPV ANCESTORS", round(truePos * 1.0 / nEstimPar, 2)
+    #pprint(solution)
+
+
+    trueCellAncestDict = {}
+    for i, line in enumerate(cellAncestors):
+        trueCellAncestDict[i] = set(map(int, line))
+
+    inferredCellAncestDict = {}
+    # for each cell check its ancestors
+    for i in range(len(solution[0])):
+        anc = [solution[j][i] for j in range(len(solution))]
+        ances = set()
+        for u, v in enumerate(anc):
+            if v == 1:
+                ances.add(u + 1)
+        if len(ances) == 0:
+            ances.add(0)
+        inferredCellAncestDict[i] = ances
+    
+    for i in range(len(solution[0])):
+        #print trueCellAncestDict[i], inferredCellAncestDict[i]
+        nTruePar += len(trueCellAncestDict[i])
+        nEstimPar += len(inferredCellAncestDict[i])
+        truePos += len(trueCellAncestDict[i] & inferredCellAncestDict[i])
+    print "SENSITIVITY ALL", round(truePos * 1.0 / nTruePar, 2)
+    print "PPV ANCESTORS", round(truePos * 1.0 / nEstimPar, 2)
+
+
+
+
