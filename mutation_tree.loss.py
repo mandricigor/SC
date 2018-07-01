@@ -12,7 +12,11 @@ from Queue import Queue
 from pprint import pprint
 import matplotlib.pyplot as plt
 import pygraphviz as PG
+from math import log
 
+
+ALPHA = 0.1
+BETA = 0.001
 
 
 def single_cell_phylogeny(matrix, nLoss=1):
@@ -464,9 +468,9 @@ def single_cell_phylogeny(matrix, nLoss=1):
     for i in range(M): # not counting the newly introduced root
         for k in range(K):
             if matrix[i][k] == 0:
-                cpx.objective.set_linear("P#%s#%s" % (i, k), 1)
+                cpx.objective.set_linear("P#%s#%s" % (i, k), log((1 - ALPHA) / BETA))
             elif matrix[i][k] == 1:
-                cpx.objective.set_linear("P#%s#%s" % (i, k), -1)
+                cpx.objective.set_linear("P#%s#%s" % (i, k), -log((1 - BETA) / ALPHA))
 
     cpx.objective.set_sense(cpx.objective.sense.minimize)
     cpx.set_problem_type(cpx.problem_type.MILP)
@@ -590,7 +594,7 @@ nLoss = int(sys.argv[2])
 with open(matfile) as f:
     matdata = f.readlines()
 
-matdata = map(lambda x: x.strip().split(","), matdata)
+matdata = map(lambda x: x.strip().split(), matdata)
 
 mutation_matrix = []
 for line in matdata:
@@ -656,6 +660,16 @@ solution, matrix, losses, attachments = single_cell_phylogeny(mutation_matrix, n
 #pprint(mutation_matrix)
 
 
+pprint(solution)
+pprint(mutation_matrix)
+
+solution_mismatches = 0
+for u, v in zip(solution, mutation_matrix):
+    for uu, vv in zip(u, v):
+        if uu != vv:
+            solution_mismatches += 1
+
+print "Solution mismatches in ancestry matrix", solution_mismatches
 
 
 
@@ -761,9 +775,9 @@ for node in A.nodes():
             node_attr.attr['fillcolor']="green"
 
 
-
-A.write('ademo.dot')
+where_to_save = sys.argv[1].split(".")[0]
+A.write(where_to_save + ".igor.dot")
 
 A.layout(prog='dot')
 
-A.draw('graph.pdf')
+A.draw(where_to_save + ".igor.pdf")
