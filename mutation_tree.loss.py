@@ -58,11 +58,10 @@ def single_cell_phylogeny(matrix, nLoss=1):
             name = "T#%s#%s" % (i, j)
             cpx.variables.add(lb=[0], ub=[1], types=["B"], names=[name])
 
-    # adding Zij
+    # adding Zij - bounding number of children - we have to have at most the same number of leaves as cells
     for i in range(M):
-        for j in range(M):
-            name = "Z#%s#%s" % (i, j)
-            cpx.variables.add(lb=[0], ub=[1], types=["B"], names=[name])
+        name = "Z#%s" % i
+        cpx.variables.add(lb=[0], ub=[1], types=["B"], names=[name])
 
     # adding Sik
     for i in range(M):
@@ -195,12 +194,6 @@ def single_cell_phylogeny(matrix, nLoss=1):
                 )
 
 
-
-
-
-
-
-
                 inds = ["X#%s#%s" % (j, i)]
                 vals = [1]
                 cons = cplex.SparsePair(ind=inds, val=vals)
@@ -213,8 +206,6 @@ def single_cell_phylogeny(matrix, nLoss=1):
 
             else:
                 pass
-
-
 
 
 
@@ -243,6 +234,22 @@ def single_cell_phylogeny(matrix, nLoss=1):
             rhs = [1],\
             names = ['cons9-%s' % k]\
         )
+
+
+    ################ Ensure number of leaves is at most number of cells
+    for i in range(M):
+        # Sum Xij + SUM Sij >= 2 for each i - > if it is a leaf - it must have a cell
+        inds = ["S#%s#%s" % (i, j) for j in range(M)] + ["X#%s#%s" % (i, j) for j in range(M)]
+        vals = [1 for j in range(M)] + [1 for j in range(M)]
+        cons = cplex.SparsePair(ind=inds, val=vals)
+        cpx.linear_constraints.add( \
+            lin_expr = [cons],\
+            senses = ["G"],\
+            rhs = [2],\
+            names = ['cons9-%s' % k]\
+        )
+
+    #########################################3
 
 
 
@@ -367,11 +374,6 @@ def single_cell_phylogeny(matrix, nLoss=1):
 
 
 
-
-
-
-
-
     # add constraints for Gikj
     for i in range(M):
         for k in range(K):
@@ -442,28 +444,6 @@ def single_cell_phylogeny(matrix, nLoss=1):
         )
 
 
-
-    #
-    # inds = ["U#%s" % 0]
-    # vals = [1]
-    # cons = cplex.SparsePair(ind=inds, val=vals)
-    # cpx.linear_constraints.add( \
-    #     lin_expr = [cons],\
-    #     senses = ["E"],\
-    #     rhs = [0],\
-    #     names = ['cons18-%s' % i]\
-    # )
-    # inds = ["V#%s" % 0]
-    # vals = [1]
-    # cons = cplex.SparsePair(ind=inds, val=vals)
-    # cpx.linear_constraints.add( \
-    #     lin_expr = [cons],\
-    #     senses = ["E"],\
-    #     rhs = [1],\
-    #     names = ['cons18-%s' % i]\
-    # )
-
-
     # setting objective
     for i in range(M): # not counting the newly introduced root
         for k in range(K):
@@ -527,7 +507,6 @@ def single_cell_phylogeny(matrix, nLoss=1):
         mutationTreeMatrix.append(mutRow)
     #print "MUTATION MATRIX"
     #pprint(mutationTreeMatrix)
-
 
 
     solution = []
@@ -755,7 +734,7 @@ for node in loss_dict:
             else:
                 suffix = ""
             A.add_edge(parent, "L" + str(losses_to_insert[i]) + suffix)
-            parent = "L" + losses_to_insert[i] + suffix
+            parent = "L" + str(losses_to_insert[i]) + suffix
     A.add_edge("L" + str(losses_to_insert[-1]) + suffix, "M" + str(node))
 
 A.node_attr['style']='filled'
