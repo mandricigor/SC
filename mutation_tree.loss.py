@@ -400,6 +400,22 @@ def single_cell_phylogeny(matrix, nLoss=1):
                 names = ['cons11-%s' % i]\
             )
 
+
+
+    # in each column of R not more than two ones - allow only at most one loss for each cell
+    for j in range(M):
+        inds = ["R#%s#%s" % (i, j) for i in range(M)]
+        vals = [1 for i in range(M)]
+        cons = cplex.SparsePair(ind=inds, val=vals)
+        cpx.linear_constraints.add( \
+            lin_expr = [cons],\
+            senses = ["L"],\
+            rhs = [1],\
+            names = ['cons11-%s' % k]\
+        )
+
+
+
     # number of losses must be not greater than nLoss
     inds = ["L#%s#%s" % (i, j) for i in range(M) for j in range(M)]
     vals = [1 for i in range(M) for j in range(M)]
