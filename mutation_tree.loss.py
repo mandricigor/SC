@@ -114,6 +114,13 @@ def single_cell_phylogeny(matrix, nLoss=1):
             cpx.variables.add(lb=[0], ub=[1], types=["B"], names=[name])
 
 
+    for i in range(M):
+        for k in range(K):
+            name = "H#%s#%s" % (i, k)
+            cpx.variables.add(lb=[0], ub=[1], types=["B"], names=[name])
+
+
+
 
     for i in range(M):
         # Ui <= Vi
@@ -539,6 +546,55 @@ def single_cell_phylogeny(matrix, nLoss=1):
             names = ['cons18-%s' % i]\
         )
 
+    """
+    # xor objective
+    for i in range(M):
+        for k in range(K):
+            inds = ["H#%s#%s" % (i, k), "P#%s#%s" % (i, k)]
+            vals = [1, -1]
+            cons = cplex.SparsePair(ind=inds, val=vals)
+            cpx.linear_constraints.add( \
+                lin_expr = [cons],\
+                senses = ["L"],\
+                rhs = [1 - matrix[i][k]],\
+                names = ['cons17-%s-%s' % (i, k)]\
+            )
+            inds = ["H#%s#%s" % (i, k), "P#%s#%s" % (i, k)]
+            vals = [1, -1]
+            cons = cplex.SparsePair(ind=inds, val=vals)
+            cpx.linear_constraints.add( \
+                lin_expr = [cons],\
+                senses = ["G"],\
+                rhs = [matrix[i][k] - 1],\
+                names = ['cons17-%s-%s' % (i, k)]\
+            )
+            inds = ["H#%s#%s" % (i, k), "P#%s#%s" % (i, k)]
+            vals = [1, 1]
+            cons = cplex.SparsePair(ind=inds, val=vals)
+            cpx.linear_constraints.add( \
+                lin_expr = [cons],\
+                senses = ["G"],\
+                rhs = [1 - matrix[i][k]],\
+                names = ['cons17-%s-%s' % (i, k)]\
+            )
+            inds = ["H#%s#%s" % (i, k), "P#%s#%s" % (i, k)]
+            vals = [1, 1]
+            cons = cplex.SparsePair(ind=inds, val=vals)
+            cpx.linear_constraints.add( \
+                lin_expr = [cons],\
+                senses = ["L"],\
+                rhs = [1 + matrix[i][k]],\
+                names = ['cons17-%s-%s' % (i, k)]\
+            )
+
+    # different objective
+    for i in range(M):
+        for k in range(K):
+            cpx.objective.set_linear("H#%s#%s" % (i, k), 1)
+
+    cpx.objective.set_sense(cpx.objective.sense.maximize)
+
+    """
 
     # setting objective
     for i in range(M): # not counting the newly introduced root
@@ -934,6 +990,7 @@ if len(sys.argv) == 5: # here we have to supply the ground truth
         nTruePar += len(trueAncestDict[i])
         nEstimPar += len(inferredAncestDict[i])
         truePos += len(trueAncestDict[i] & inferredAncestDict[i])
+        print i, trueAncestDict[i], inferredAncestDict[i]
     print "SENSITIVITY ANCESTORS", round(truePos * 1.0 / nTruePar, 2)
     print "PPV ANCESTORS", round(truePos * 1.0 / nEstimPar, 2)
     #pprint(solution)
