@@ -51,7 +51,7 @@ def single_cell_phylogeny(matrix, nLoss=1):
         name = "V#%s" % j
         cpx.variables.add(lb=[0], ub=[1], types=["C"], names=[name])
 
-
+    """
     # adding Tij
     for i in range(M):
         for j in range(M):
@@ -60,8 +60,30 @@ def single_cell_phylogeny(matrix, nLoss=1):
 
     # adding Zij - bounding number of children - we have to have at most the same number of leaves as cells
     for i in range(M):
-        name = "Z#%s" % i
-        cpx.variables.add(lb=[0], ub=[1], types=["B"], names=[name])
+        for j in range(M):
+            name = "Z#%s#%s" % (i, j)
+            cpx.variables.add(lb=[0], ub=[1], types=["B"], names=[name])
+
+    for i in range(M):
+        for j in range(M):
+            name = "D#%s#%s" % (i, j)
+            cpx.variables.add(lb=[0], ub=[1], types=["B"], names=[name])
+    """
+
+    for i in range(M):
+        for j in range(M):
+            if i < j:
+                name = "A#%s#%s" % (i, j)
+                cpx.variables.add(lb=[0], ub=[1], types=["B"], names=[name])
+
+                name = "B#%s#%s" % (i, j)
+                cpx.variables.add(lb=[0], ub=[1], types=["B"], names=[name])
+
+                name = "C#%s#%s" % (i, j)
+                cpx.variables.add(lb=[0], ub=[1], types=["B"], names=[name])
+
+                name = "D#%s#%s" % (i, j)
+                cpx.variables.add(lb=[0], ub=[1], types=["B"], names=[name])
 
     # adding Sik
     for i in range(M):
@@ -101,7 +123,7 @@ def single_cell_phylogeny(matrix, nLoss=1):
     for i in range(M):
         for j in range(M):
             for h in range(M):
-                name = "C#%s#%s#%s" % (i, j, h)
+                name = "F#%s#%s#%s" % (i, j, h)
                 cpx.variables.add(lb=[0], ub=[1], types=["B"], names=[name])
 
     # adding Wij = Mij - Rij
@@ -126,86 +148,170 @@ def single_cell_phylogeny(matrix, nLoss=1):
 
         for j in range(M):
             if i < j:
-                # Ui <= Uj
-                inds = ["U#%s" % i, "U#%s" % j]
+                # A
+                inds = ["A#%s#%s" % (i, j), "U#%s" % i, "U#%s" % j]
+                vals = [-1, -1, 1]
+                cons = cplex.SparsePair(ind=inds, val=vals)
+                cpx.linear_constraints.add( \
+                    lin_expr = [cons],\
+                    senses = ["L"],\
+                    rhs = [0],\
+                    names = ['cons2-%s-%s' % (i, j)]\
+                )
+                inds = ["U#%s" % i, "U#%s" % j, "A#%s#%s" % (i, j)]
+                vals = [1, -1, 1]
+                cons = cplex.SparsePair(ind=inds, val=vals)
+                cpx.linear_constraints.add( \
+                    lin_expr = [cons],\
+                    senses = ["L"],\
+                    rhs = [1],\
+                    names = ['cons2-%s-%s' % (i, j)]\
+                )
+
+                # B
+                inds = ["B#%s#%s" % (i, j), "U#%s" % j, "V#%s" % i]
+                vals = [-1, -1, 1]
+                cons = cplex.SparsePair(ind=inds, val=vals)
+                cpx.linear_constraints.add( \
+                    lin_expr = [cons],\
+                    senses = ["L"],\
+                    rhs = [0],\
+                    names = ['cons2-%s-%s' % (i, j)]\
+                )
+                inds = ["U#%s" % j, "V#%s" % i, "B#%s#%s" % (i, j)]
+                vals = [1, -1, 1]
+                cons = cplex.SparsePair(ind=inds, val=vals)
+                cpx.linear_constraints.add( \
+                    lin_expr = [cons],\
+                    senses = ["L"],\
+                    rhs = [1],\
+                    names = ['cons2-%s-%s' % (i, j)]\
+                )
+
+                # C
+                inds = ["C#%s#%s" % (i, j), "V#%s" % j, "U#%s" % i]
+                vals = [-1, -1, 1]
+                cons = cplex.SparsePair(ind=inds, val=vals)
+                cpx.linear_constraints.add( \
+                    lin_expr = [cons],\
+                    senses = ["L"],\
+                    rhs = [0],\
+                    names = ['cons2-%s-%s' % (i, j)]\
+                )
+                inds = ["V#%s" % j, "U#%s" % i, "C#%s#%s" % (i, j)]
+                vals = [1, -1, 1]
+                cons = cplex.SparsePair(ind=inds, val=vals)
+                cpx.linear_constraints.add( \
+                    lin_expr = [cons],\
+                    senses = ["L"],\
+                    rhs = [1],\
+                    names = ['cons2-%s-%s' % (i, j)]\
+                )
+
+                # D
+                inds = ["D#%s#%s" % (i, j), "V#%s" % i, "V#%s" % j]
+                vals = [-1, -1, 1]
+                cons = cplex.SparsePair(ind=inds, val=vals)
+                cpx.linear_constraints.add( \
+                    lin_expr = [cons],\
+                    senses = ["L"],\
+                    rhs = [0],\
+                    names = ['cons2-%s-%s' % (i, j)]\
+                )
+                inds = ["V#%s" % i, "V#%s" % j, "D#%s#%s" % (i, j)]
+                vals = [1, -1, 1]
+                cons = cplex.SparsePair(ind=inds, val=vals)
+                cpx.linear_constraints.add( \
+                    lin_expr = [cons],\
+                    senses = ["L"],\
+                    rhs = [1],\
+                    names = ['cons2-%s-%s' % (i, j)]\
+                )
+
+
+                # A, B, C, D
+                inds = ["A#%s#%s" % (i, j), "B#%s#%s" % (i, j), "D#%s#%s" % (i, j)]
+                vals = [1, 1, 1]
+                cons = cplex.SparsePair(ind=inds, val=vals)
+                cpx.linear_constraints.add( \
+                    lin_expr = [cons],\
+                    senses = ["L"],\
+                    rhs = [2],\
+                    names = ['cons2-%s-%s' % (i, j)]\
+                )
+                inds = ["A#%s#%s" % (i, j), "C#%s#%s" % (i, j), "D#%s#%s" % (i, j)]
+                vals = [1, 1, 1]
+                cons = cplex.SparsePair(ind=inds, val=vals)
+                cpx.linear_constraints.add( \
+                    lin_expr = [cons],\
+                    senses = ["G"],\
+                    rhs = [1],\
+                    names = ['cons2-%s-%s' % (i, j)]\
+                )
+
+
+                # Xij
+                inds = ["X#%s#%s" % (i, j), "A#%s#%s" % (i, j),"D#%s#%s" % (i, j)]
+                vals = [1, -1, 1]
+                cons = cplex.SparsePair(ind=inds, val=vals)
+                cpx.linear_constraints.add( \
+                    lin_expr = [cons],\
+                    senses = ["G"],\
+                    rhs = [0],\
+                    names = ['cons2-%s-%s' % (i, j)]\
+                )
+
+                inds = ["X#%s#%s" % (i, j), "A#%s#%s" % (i, j)]
                 vals = [1, -1]
                 cons = cplex.SparsePair(ind=inds, val=vals)
                 cpx.linear_constraints.add( \
                     lin_expr = [cons],\
                     senses = ["L"],\
-                    rhs = [-0.01],\
-                    names = ['cons2-%s-%s' % (i, j)]\
-                )
-
-
-                # -1A- -Tij <= Ui - Uj
-                inds = ["T#%s#%s" % (i, j), "V#%s" % i, "U#%s" % j]
-                vals = [-1, -1, 1]
-                cons = cplex.SparsePair(ind=inds, val=vals)
-                cpx.linear_constraints.add( \
-                    lin_expr = [cons],\
-                    senses = ["L"],\
                     rhs = [0],\
                     names = ['cons2-%s-%s' % (i, j)]\
                 )
-                # -1B- Ui - Uj <= 1 - Tij
-                inds = ["V#%s" % i, "U#%s" % j, "T#%s#%s" % (i, j)]
-                vals = [1, -1, 1]
-                cons = cplex.SparsePair(ind=inds, val=vals)
-                cpx.linear_constraints.add( \
-                    lin_expr = [cons],\
-                    senses = ["L"],\
-                    rhs = [1],\
-                    names = ['cons2-%s-%s' % (i, j)]\
-                )
 
-
-                # -1A- -Tij <= Ui - Uj
-                inds = ["X#%s#%s" % (i, j), "V#%s" % j, "V#%s" % i]
-                vals = [-1, -1, 1]
-                cons = cplex.SparsePair(ind=inds, val=vals)
-                cpx.linear_constraints.add( \
-                    lin_expr = [cons],\
-                    senses = ["L"],\
-                    rhs = [0],\
-                    names = ['cons2-%s-%s' % (i, j)]\
-                )
-                # -1B- Ui - Uj <= 1 - Tij
-                inds = ["V#%s" % j, "V#%s" % i, "X#%s#%s" % (i, j)]
-                vals = [1, -1, 1]
-                cons = cplex.SparsePair(ind=inds, val=vals)
-                cpx.linear_constraints.add( \
-                    lin_expr = [cons],\
-                    senses = ["L"],\
-                    rhs = [1],\
-                    names = ['cons2-%s-%s' % (i, j)]\
-                )
-
-
-
-                inds = ["T#%s#%s" % (i, j), "X#%s#%s" % (i, j)]
+                inds = ["X#%s#%s" % (i, j), "D#%s#%s" % (i, j)]
                 vals = [1, 1]
                 cons = cplex.SparsePair(ind=inds, val=vals)
                 cpx.linear_constraints.add( \
                     lin_expr = [cons],\
-                    senses = ["E"],\
+                    senses = ["L"],\
                     rhs = [1],\
                     names = ['cons2-%s-%s' % (i, j)]\
                 )
 
-
-                inds = ["X#%s#%s" % (j, i)]
-                vals = [1]
+                # Xji
+                inds = ["X#%s#%s" % (j, i), "D#%s#%s" % (i, j), "A#%s#%s" % (i, j)]
+                vals = [1, -1, 1]
                 cons = cplex.SparsePair(ind=inds, val=vals)
                 cpx.linear_constraints.add( \
                     lin_expr = [cons],\
-                    senses = ["E"],\
+                    senses = ["G"],\
                     rhs = [0],\
                     names = ['cons2-%s-%s' % (i, j)]\
                 )
 
-            else:
-                pass
+                inds = ["X#%s#%s" % (j, i), "D#%s#%s" % (i, j)]
+                vals = [1, -1]
+                cons = cplex.SparsePair(ind=inds, val=vals)
+                cpx.linear_constraints.add( \
+                    lin_expr = [cons],\
+                    senses = ["L"],\
+                    rhs = [0],\
+                    names = ['cons2-%s-%s' % (i, j)]\
+                )
+
+                inds = ["X#%s#%s" % (j, i), "A#%s#%s" % (i, j)]
+                vals = [1, 1]
+                cons = cplex.SparsePair(ind=inds, val=vals)
+                cpx.linear_constraints.add( \
+                    lin_expr = [cons],\
+                    senses = ["L"],\
+                    rhs = [1],\
+                    names = ['cons2-%s-%s' % (i, j)]\
+                )
+
 
 
 
@@ -313,7 +419,7 @@ def single_cell_phylogeny(matrix, nLoss=1):
     for i in range(M):
         for j in range(M):
             for h in range(M):
-                inds = ["C#%s#%s#%s" % (i, j, h), "L#%s#%s" % (i, h)]
+                inds = ["F#%s#%s#%s" % (i, j, h), "L#%s#%s" % (i, h)]
                 vals = [1, -1]
                 cons = cplex.SparsePair(ind=inds, val=vals)
                 cpx.linear_constraints.add( \
@@ -322,7 +428,7 @@ def single_cell_phylogeny(matrix, nLoss=1):
                     rhs = [0],\
                     names = ['cons13A-%s-%s-%s' % (i, j, k)]\
                 )
-                inds = ["C#%s#%s#%s" % (i, j, h), "X#%s#%s" % (h, j)]
+                inds = ["F#%s#%s#%s" % (i, j, h), "X#%s#%s" % (h, j)]
                 vals = [1, -1]
                 cons = cplex.SparsePair(ind=inds, val=vals)
                 cpx.linear_constraints.add( \
@@ -331,7 +437,7 @@ def single_cell_phylogeny(matrix, nLoss=1):
                     rhs = [0],\
                     names = ['cons13B-%s-%s-%s' % (i, j, k)]\
                 )
-                inds = ["C#%s#%s#%s" % (i, j, h), "L#%s#%s" % (i, h), "X#%s#%s" % (h, j)]
+                inds = ["F#%s#%s#%s" % (i, j, h), "L#%s#%s" % (i, h), "X#%s#%s" % (h, j)]
                 vals = [1, -1, -1]
                 cons = cplex.SparsePair(ind=inds, val=vals)
                 cpx.linear_constraints.add( \
@@ -345,7 +451,7 @@ def single_cell_phylogeny(matrix, nLoss=1):
     # add constraint that Rij = sum Cijh
     for i in range(M):
         for j in range(M):
-            inds = ["R#%s#%s" % (i, j)] +  ["C#%s#%s#%s" % (i, j, h) for h in range(M)]
+            inds = ["R#%s#%s" % (i, j)] +  ["F#%s#%s#%s" % (i, j, h) for h in range(M)]
             vals = [1] + [-1 for h in range(M)]
             cons = cplex.SparsePair(ind=inds, val=vals)
             cpx.linear_constraints.add( \
@@ -466,8 +572,8 @@ def single_cell_phylogeny(matrix, nLoss=1):
         for k in range(K):
             attRow.append(int(round(cpx.solution.get_values("S#%s#%s" % (i, k)))))
         attachments.append(attRow)
-    #print "ATTACHMENTS MATRIX"
-    #pprint(attachments)
+    print "ATTACHMENTS MATRIX"
+    pprint(attachments)
 
 
 
@@ -484,8 +590,8 @@ def single_cell_phylogeny(matrix, nLoss=1):
         for j in range(M):
             lossRow.append(int(round(cpx.solution.get_values("L#%s#%s" % (i, j)))))
         lossMatrix.append(lossRow)
-    #print "LOSS MATRIX"
-    #pprint(lossMatrix)
+    print "LOSS MATRIX"
+    pprint(lossMatrix)
 
 
     rMatrix = []
@@ -494,8 +600,8 @@ def single_cell_phylogeny(matrix, nLoss=1):
         for j in range(M):
             rRow.append(int(round(cpx.solution.get_values("R#%s#%s" % (i, j)))))
         rMatrix.append(rRow)
-    #print "R MATRIX"
-    #pprint(rMatrix)
+    print "R MATRIX"
+    pprint(rMatrix)
 
 
 
@@ -505,8 +611,8 @@ def single_cell_phylogeny(matrix, nLoss=1):
         for j in range(M):
             mutRow.append(int(round(cpx.solution.get_values("X#%s#%s" % (i, j)))))
         mutationTreeMatrix.append(mutRow)
-    #print "MUTATION MATRIX"
-    #pprint(mutationTreeMatrix)
+    print "MUTATION MATRIX"
+    pprint(mutationTreeMatrix)
 
 
     solution = []
@@ -515,8 +621,8 @@ def single_cell_phylogeny(matrix, nLoss=1):
         for k in range(K):
             solX.append(int(round(cpx.solution.get_values("P#%s#%s" % (i, k)))))
         solution.append(solX)
-    #print "Inferred matrix"
-    #pprint(solution)
+    print "Inferred matrix"
+    pprint(solution)
 
 
 
@@ -528,15 +634,15 @@ def single_cell_phylogeny(matrix, nLoss=1):
                 Vi = float(cpx.solution.get_values("V#%s" % i))
                 Uj = float(cpx.solution.get_values("U#%s" % j))
                 Vj = float(cpx.solution.get_values("V#%s" % j))
-                Tij = int(round(cpx.solution.get_values("T#%s#%s" % (i, j))))
-                Xij = int(round(cpx.solution.get_values("X#%s#%s" % (i, j))))
+                #Tij = int(round(cpx.solution.get_values("T#%s#%s" % (i, j))))
+                #Xij = int(round(cpx.solution.get_values("X#%s#%s" % (i, j))))
                 #print "%s, %s: (%s, %s) - (%s, %s) - %s - %s" % (i, j, Ui, Vi, Uj, Vj, Tij, Xij)
 
 
     intervals = {}
 
     for i in range(M):
-        #print "%s: (%s, %s)" % (i, float(cpx.solution.get_values("U#%s" % i)), float(cpx.solution.get_values("V#%s" % i)))
+        print "%s: (%s, %s)" % (i, float(cpx.solution.get_values("U#%s" % i)), float(cpx.solution.get_values("V#%s" % i)))
         intervals[i] = (float("%s" % float(cpx.solution.get_values("U#%s" % i))), float("%s" % float(cpx.solution.get_values("V#%s" % i))))
 
 
@@ -648,7 +754,7 @@ for u, v in zip(solution, mutation_matrix):
         if uu != vv:
             solution_mismatches += 1
 
-#print "Solution mismatches in ancestry matrix", solution_mismatches
+print "Solution mismatches in ancestry matrix", solution_mismatches
 
 
 
@@ -664,7 +770,7 @@ for i in range(len(matrix)):
             if matrix[i][j] == 1:
                 ancestry_dict[i].append(j)
 
-#print ancestry_dict
+print ancestry_dict, "ANCESTRY"
 
 
 parents = {}
@@ -683,11 +789,14 @@ while True:
         ancestry_dict[node] = [x for x in ancestry_dict[node] if x not in leaves]
 
 
+print "BEFORE GRAPH"
+
 
 A = PG.AGraph(directed=True, strict=True)
 
 for u, v in parents.items():
     A.add_edge("M" + str(v), "M" + str(u))
+    print "ADDING EDGE", "M" + str(v), "M" + str(u)
 
 
 for i in range(len(attachments[0])):
@@ -705,7 +814,7 @@ for i in range(len(losses)):
                 loss_dict[j] = []
             loss_dict[j].append(i)
 
-#print loss_dict
+print loss_dict, "LOSS DICT"
 
 loss_freq_dict = {}
 for node1, nodes2 in loss_dict.items():
@@ -714,7 +823,11 @@ for node1, nodes2 in loss_dict.items():
             loss_freq_dict[n] = 0
         loss_freq_dict[n] += 1
 
+
+
+
 for node in loss_dict:
+    print node, "NODE"
     parent =  A.in_neighbors("M" + str(node))[0]
     losses_to_insert = loss_dict[node]
     A.remove_edge(parent, "M" + str(node))
