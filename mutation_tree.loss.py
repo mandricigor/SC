@@ -51,25 +51,6 @@ def single_cell_phylogeny(matrix, nLoss=1):
         name = "V#%s" % j
         cpx.variables.add(lb=[0], ub=[1], types=["C"], names=[name])
 
-    """
-    # adding Tij
-    for i in range(M):
-        for j in range(M):
-            name = "T#%s#%s" % (i, j)
-            cpx.variables.add(lb=[0], ub=[1], types=["B"], names=[name])
-
-    # adding Zij - bounding number of children - we have to have at most the same number of leaves as cells
-    for i in range(M):
-        for j in range(M):
-            name = "Z#%s#%s" % (i, j)
-            cpx.variables.add(lb=[0], ub=[1], types=["B"], names=[name])
-
-    for i in range(M):
-        for j in range(M):
-            name = "D#%s#%s" % (i, j)
-            cpx.variables.add(lb=[0], ub=[1], types=["B"], names=[name])
-    """
-
     for i in range(M):
         for j in range(M):
             if i < j:
@@ -155,7 +136,7 @@ def single_cell_phylogeny(matrix, nLoss=1):
                 cpx.linear_constraints.add( \
                     lin_expr = [cons],\
                     senses = ["L"],\
-                    rhs = [0],\
+                    rhs = [-0.01],\
                     names = ['cons2-%s-%s' % (i, j)]\
                 )
                 inds = ["U#%s" % i, "U#%s" % j, "A#%s#%s" % (i, j)]
@@ -175,7 +156,7 @@ def single_cell_phylogeny(matrix, nLoss=1):
                 cpx.linear_constraints.add( \
                     lin_expr = [cons],\
                     senses = ["L"],\
-                    rhs = [0],\
+                    rhs = [-0.01],\
                     names = ['cons2-%s-%s' % (i, j)]\
                 )
                 inds = ["U#%s" % j, "V#%s" % i, "B#%s#%s" % (i, j)]
@@ -195,7 +176,7 @@ def single_cell_phylogeny(matrix, nLoss=1):
                 cpx.linear_constraints.add( \
                     lin_expr = [cons],\
                     senses = ["L"],\
-                    rhs = [0],\
+                    rhs = [-0.01],\
                     names = ['cons2-%s-%s' % (i, j)]\
                 )
                 inds = ["V#%s" % j, "U#%s" % i, "C#%s#%s" % (i, j)]
@@ -215,7 +196,7 @@ def single_cell_phylogeny(matrix, nLoss=1):
                 cpx.linear_constraints.add( \
                     lin_expr = [cons],\
                     senses = ["L"],\
-                    rhs = [0],\
+                    rhs = [-0.01],\
                     names = ['cons2-%s-%s' % (i, j)]\
                 )
                 inds = ["V#%s" % i, "V#%s" % j, "D#%s#%s" % (i, j)]
@@ -312,6 +293,15 @@ def single_cell_phylogeny(matrix, nLoss=1):
                     names = ['cons2-%s-%s' % (i, j)]\
                 )
 
+                inds = ["X#%s#%s" % (i, j), "X#%s#%s" % (j, i)]
+                vals = [1, 1]
+                cons = cplex.SparsePair(ind=inds, val=vals)
+                cpx.linear_constraints.add( \
+                    lin_expr = [cons],\
+                    senses = ["L"],\
+                    rhs = [1],\
+                    names = ['cons2-%s-%s' % (i, j)]\
+                )
 
 
 
@@ -777,15 +767,23 @@ parents = {}
 
 while True:
     leaves = [node for node in ancestry_dict if ancestry_dict[node] == []]
-    if not leaves:
+    if leaves == [0]:
         break
-    #print "LEAVES", leaves
+    print "LEAVES", leaves
     for leaf in leaves:
         del ancestry_dict[leaf]
+    # determine who is the parent
+    possible_parents = []
+    for leaf in leaves:
+        possible_parents = [(node, len(ancestry_dict[node])) for node in ancestry_dict if leaf in ancestry_dict[node]]
+        print leaf, possible_parents, "MMM"
+        parent = min(possible_parents, key=lambda z: z[1])[0]
+        print leaf, parent, "PARENT"
+        parents[leaf] = parent
     for node in ancestry_dict:
-        lifs = [x for x in ancestry_dict[node] if x in leaves]
-        for l in lifs:
-            parents[l] = node
+        #lifs = [x for x in ancestry_dict[node] if x in leaves]
+        #for l in lifs:
+        #    parents[l] = node
         ancestry_dict[node] = [x for x in ancestry_dict[node] if x not in leaves]
 
 
