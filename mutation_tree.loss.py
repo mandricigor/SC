@@ -342,14 +342,14 @@ def single_cell_phylogeny(matrix, nLoss=1):
     ################ Ensure number of leaves is at most number of cells
     for i in range(M):
         # Sum Xij + SUM Sij >= 2 for each i - > if it is a leaf - it must have a cell
-        inds = ["S#%s#%s" % (i, j) for j in range(M)] + ["X#%s#%s" % (i, j) for j in range(M)]
-        vals = [1 for j in range(M)] + [1 for j in range(M)]
+        inds = ["S#%s#%s" % (i, k) for k in range(K)] + ["X#%s#%s" % (i, j) for j in range(M)]
+        vals = [1 for k in range(K)] + [1 for j in range(M)]
         cons = cplex.SparsePair(ind=inds, val=vals)
         cpx.linear_constraints.add( \
             lin_expr = [cons],\
             senses = ["G"],\
             rhs = [2],\
-            names = ['cons9-%s' % k]\
+            names = ['cons9-%s' % i]\
         )
 
     #########################################3
